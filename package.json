@@ -1,0 +1,23 @@
+{
+  "name": "naira-maker",
+  "version": "0.1.0",
+  "description": "Inventory-aware cNGN/USDT quoting agent for Textile FX on Celo (Agents on Open Rails hackathon, Track 2a)",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "quote:once": "tsx src/index.ts --once",
+    "pnl": "tsx src/pnl/report.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

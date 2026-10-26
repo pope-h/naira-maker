@@ -1,0 +1,26 @@
+# naira-maker: price feed + Stitch bot. Lives in /opt/naira-maker on the server.
+# No ports are published. Stitch shares the feed's network namespace because it
+# only accepts a plain-http [feed] url on localhost.
+services:
+  feed:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      QUOTE_SINK: feed
+    volumes:
+      - ./data:/app/data
+    mem_limit: 256m
+
+  stitch:
+    image: ghcr.io/textile-protocol/textile-stitch:latest
+    restart: unless-stopped
+    depends_on: [feed]
+    network_mode: "service:feed"
+    environment:
+      STITCH_PRIVATE_KEY_FILE: /home/stitch/run/stitch.key
+    volumes:
+      - ./stitch:/home/stitch/run
+    # Add "--dry-run" to the command to test without quoting.
+    command: ["stitch", "--config", "/home/stitch/run/stitch.toml"]
+    mem_limit: 256m
