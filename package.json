@@ -12,6 +12,7 @@
     "test": "node --import tsx --test test/*.test.ts"
   },
   "dependencies": {
+    "@celo/attribution-tags": "^0.5.0",
     "dotenv": "^16.4.5",
     "viem": "^2.21.0"
   },

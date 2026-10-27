@@ -7,7 +7,7 @@ Most makers on Textile quote a fixed spread. This agent prices from a multi-sour
 
 - **Inventory skew:** holding too much USDT moves both quotes down so normal flow rebalances the book, no separate rebalancing trade.
 - **Volatility:** the spread widens when the naira mid moves fast, and tightens again when it calms.
-- **Source divergence:** if reference rates disagree beyond a threshold (official vs parallel rate shock), it stops quoting instead of getting picked off.
+- **Rate-shock guard:** Textile's USDT/NGN sits at a structural premium (~360 bps today) to independent sources such as CoinGecko, so an independent rate can't set the price or be averaged in. We track the basis between the two instead, keep a slow time-weighted baseline, and stop quoting when the basis jumps away from it (official vs parallel rate shock, or Textile's own book being pushed). One spike doesn't normalise itself. See `src/rates/basis.ts` and `test/basis.test.ts`.
 - **Size limits:** never offers more than it can actually fill, since Textile quotes are all-or-nothing.
 
 ## Status
@@ -20,7 +20,7 @@ Most makers on Textile quote a fixed spread. This agent prices from a multi-sour
 | Fill detection + mark-to-market P&L from tx receipts | done |
 | Price feed for Stitch (`QUOTE_SINK=feed`, USDT per cNGN, `degraded` on halt) | done — see `stitch.example.toml` |
 | Stitch install, `stitch connect`, `stitch approve`, go live | TODO (operator steps) |
-| Independent reference source (Quidax / Binance P2P / Monierate) | TODO — plug in via `REF_URL` |
+| Independent rate-shock guard (CoinGecko USDT/NGN, configurable via `REF_URL`) | done |
 
 ## Run
 

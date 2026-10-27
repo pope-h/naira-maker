@@ -1,5 +1,6 @@
 import type { Config } from "../config.js";
 import { getTicker, tickerMid } from "./textile.js";
+import { BasisGuard } from "./basis.js";
 
 export interface RateReading {
   source: string;
@@ -7,8 +8,9 @@ export interface RateReading {
 }
 
 export interface Reference {
-  mid: number; // median across sources
-  dispersionBps: number; // (max - min) / mid, in bps
+  mid: number; // Textile mid: the independent source guards it but never sets the price
+  dispersionBps: number; // deviation of the Textile/independent basis from its baseline, in bps
+  basisBps?: number;
   readings: RateReading[];
   failures: string[];
 }
@@ -33,34 +35,46 @@ export function median(xs: number[]): number {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
+const guard = new BasisGuard();
+const INDEPENDENT_TTL_MS = 60_000; // free APIs rate-limit, and the basis moves slowly
+let cached: { at: number; reading: RateReading } | null = null;
+
+async function independent(cfg: Config): Promise<RateReading | null> {
+  if (cached && Date.now() - cached.at < INDEPENDENT_TTL_MS) return cached.reading;
+  const r = await external(cfg);
+  if (r) cached = { at: Date.now(), reading: r };
+  return r;
+}
+
 /**
- * Builds a reference mid from every configured source.
- *
- * Caveat: Textile's own mid already contains other makers' quotes, so using it
- * alone means following the crowd. Add at least one independent source
- * (Quidax, Binance P2P, Monierate...) via REF_URL / REF_FIELD, or add more
- * sources here, before trusting the strategy with real size.
+ * Textile's mid is the price we quote from. It already contains other makers'
+ * quotes and sits at a premium to the official and international rates, so an
+ * independent source is used only as a shock detector (see BasisGuard), never
+ * averaged into the price. If the independent source is unavailable we keep
+ * quoting from Textile alone and report the failure.
  */
 export async function getReference(cfg: Config): Promise<Reference> {
   const readings: RateReading[] = [];
   const failures: string[] = [];
 
-  const jobs: Array<Promise<RateReading | null>> = [
-    getTicker(cfg.textileApi, cfg.tickerId).then((t) => {
-      const mid = tickerMid(t);
-      return mid ? { source: "textile", mid } : null;
-    }),
-    external(cfg),
-  ];
-
-  for (const r of await Promise.allSettled(jobs)) {
-    if (r.status === "fulfilled" && r.value) readings.push(r.value);
-    else if (r.status === "rejected") failures.push(String(r.reason));
+  const [t, ind] = await Promise.allSettled([
+    getTicker(cfg.textileApi, cfg.tickerId).then((x) => tickerMid(x)),
+    independent(cfg),
+  ]);
+  if (t.status !== "fulfilled" || !t.value) {
+    throw new Error(`No Textile reference rate: ${t.status === "rejected" ? String(t.reason) : "no two-sided quote"}`);
   }
+  const mid = t.value;
+  readings.push({ source: "textile", mid });
 
-  if (readings.length === 0) throw new Error(`No reference rate available: ${failures.join("; ")}`);
-  const mids = readings.map((r) => r.mid);
-  const mid = median(mids);
-  const dispersionBps = ((Math.max(...mids) - Math.min(...mids)) / mid) * 1e4;
-  return { mid, dispersionBps, readings, failures };
+  let dispersionBps = 0;
+  let basisBps: number | undefined;
+  if (ind.status === "rejected") failures.push(String(ind.reason));
+  else if (ind.value) {
+    readings.push(ind.value);
+    const b = guard.push(mid, ind.value.mid, Date.now());
+    dispersionBps = b.deviationBps;
+    basisBps = b.basisBps;
+  }
+  return { mid, dispersionBps, basisBps, readings, failures };
 }

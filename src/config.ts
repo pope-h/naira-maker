@@ -52,9 +52,10 @@ export const config = {
   fillsSince: num("FILLS_SINCE", 0),
 
   externalRef: {
-    url: str("REF_URL"),
-    field: str("REF_FIELD"),
-    name: str("REF_NAME", "external"),
+    // Independent USDT/NGN source, used only as a rate-shock guard (see src/rates/basis.ts).
+    url: str("REF_URL") || "https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=ngn",
+    field: str("REF_FIELD") || "tether.ngn",
+    name: str("REF_NAME") || "coingecko",
   },
 } as const;
 
