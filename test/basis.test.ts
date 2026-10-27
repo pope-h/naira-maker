@@ -27,6 +27,16 @@ test("a spike does not normalise itself within a few readings", () => {
   assert.ok(r.deviationBps > 100, `deviation ${r.deviationBps}`);
 });
 
+test("a 65 bps drift over hours (CoinGecko noise) stays under the halt threshold", () => {
+  const g = new BasisGuard();
+  let r = g.push(1385, 1345, 0);
+  for (let h = 1; h <= 12; h++) {
+    // basis drifts from ~297 bps to ~232 bps over 12 hours, sampled every 10 minutes
+    for (let k = 0; k < 6; k++) r = g.push(1385, 1345 + (h * 6 + k) * 0.125, (h * 60 + k * 10) * MIN);
+  }
+  assert.ok(r.deviationBps < 60, `deviation ${r.deviationBps}`);
+});
+
 test("a lasting regime shift is eventually accepted", () => {
   const g = new BasisGuard(10 * MIN);
   for (let i = 0; i < 10; i++) g.push(1385, 1360, i * MIN);

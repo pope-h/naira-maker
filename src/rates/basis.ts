@@ -33,8 +33,9 @@ export class BasisGuard {
       const dt = Math.max(0, nowMs - this.lastTs);
       const alpha = 1 - Math.exp((-Math.LN2 * dt) / this.halfLifeMs);
       const deviation = Math.abs(basis - this.baseline);
-      // A reading far from the baseline barely moves it, so one spike cannot normalise itself.
-      const weight = deviation > 25 ? alpha * 0.1 : alpha;
+      // A reading far from the baseline moves it slowly (a spike must not normalise itself),
+      // but not so slowly that a lasting shift keeps the bot halted for hours.
+      const weight = deviation > 40 ? alpha * 0.3 : alpha;
       const reading = { basisBps: basis, baselineBps: this.baseline, deviationBps: deviation };
       this.baseline += weight * (basis - this.baseline);
       this.lastTs = nowMs;
