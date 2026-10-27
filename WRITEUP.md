@@ -49,7 +49,7 @@ All-in, the ledger is **-2.51 USDT on about 100 USDT of float**. The maker fills
 
 | from (UTC) | sell offset | taker premium to mid | outcome |
 |---|---|---|---|
-| Oct 26 21:45 | 2 bps | about 5 bps | 5 fills in 16 minutes |
+| Oct 26 21:45 | 2 bps | about 10-30 bps | 5 fills in 16 minutes |
 | Oct 26 22:09 | 30 bps | about 35 bps | 2 fills, Oct 27 09:14-09:15 |
 | Oct 27 09:42 | 70 bps | about 84 bps (incl. skew) | 0 fills in about 1.5 h with cNGN in stock |
 | Oct 27 11:19 | 50 bps | about 55 bps | filled 16 minutes later |
@@ -59,7 +59,7 @@ All-in, the ledger is **-2.51 USDT on about 100 USDT of float**. The maker fills
 - **Spreads are static.** Volatility-driven widening exists in the engine but cannot reach Stitch live; only the skew (via the feed) and the halt do.
 - **The buy side has not filled once.** Takers sell little cNGN here; flow is almost all takers buying it.
 - **Inventory is the hard problem.** cNGN is scarce, and sourcing it by offramp and deposit costs about as much as the sell margin earns. The sell side stops when cNGN runs out. At this size the strategy is roughly break-even, not profitable.
-- **Small float, short run.** Sixteen hours and $100. These results show the design works and what the corridor looks like, not what it earns at scale.
+- **Small float, short run.** About 14 hours and $100. These results show the design works and what the corridor looks like, not what it earns at scale.
 - **One independent price source**, and it is noisy.
 - **Attribution tags:** Stitch does not tag, and maker fills are taker-submitted, so our tag is not in them. Per Textile, scoring for this track does not use tags.
 
