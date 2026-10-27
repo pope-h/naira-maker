@@ -21,7 +21,7 @@ debt_decimals = 6
 # Static per-side spread, whole bps only (u32); restart to change.
 # Sell side is wide on purpose: only we quote depth for cNGN, rivals are ~96 bps over mid and cap at ~15 USDT.
 buy_offset_bps = 2
-sell_offset_bps = 70
+sell_offset_bps = 50
 buy_min_slice_debt = "10000000"
 buy_max_orders = 40
 sell_min_slice_debt = "10000000"
