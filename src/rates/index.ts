@@ -1,6 +1,7 @@
 import type { Config } from "../config.js";
 import { getTicker, tickerMid } from "./textile.js";
 import { BasisGuard } from "./basis.js";
+import { HoldLast } from "./hold.js";
 
 export interface RateReading {
   source: string;
@@ -36,6 +37,7 @@ export function median(xs: number[]): number {
 }
 
 const guard = new BasisGuard();
+const hold = new HoldLast();
 const INDEPENDENT_TTL_MS = 60_000; // free APIs rate-limit, and the basis moves slowly
 let cached: { at: number; reading: RateReading } | null = null;
 
@@ -50,7 +52,7 @@ async function independent(cfg: Config): Promise<RateReading | null> {
  * Textile's mid is the price we quote from. It already contains other makers'
  * quotes and sits at a premium to the official and international rates, so an
  * independent source is used only as a shock detector (see BasisGuard), never
- * averaged into the price. If the independent source is unavailable we keep
+ * averaged into the price. If Textile's book goes one-sided the last mid is held for up to 60 s. If the independent source is unavailable we keep
  * quoting from Textile alone and report the failure.
  */
 export async function getReference(cfg: Config): Promise<Reference> {
@@ -61,11 +63,12 @@ export async function getReference(cfg: Config): Promise<Reference> {
     getTicker(cfg.textileApi, cfg.tickerId).then((x) => tickerMid(x)),
     independent(cfg),
   ]);
-  if (t.status !== "fulfilled" || !t.value) {
+  const used = hold.use(t.status === "fulfilled" ? t.value : null, Date.now());
+  if (!used) {
     throw new Error(`No Textile reference rate: ${t.status === "rejected" ? String(t.reason) : "no two-sided quote"}`);
   }
-  const mid = t.value;
-  readings.push({ source: "textile", mid });
+  const mid = used.mid;
+  readings.push({ source: used.held ? "textile (held)" : "textile", mid });
 
   let dispersionBps = 0;
   let basisBps: number | undefined;
